@@ -1,0 +1,53 @@
+services:
+  web:
+    build: .
+    container_name: uts_web
+    ports:
+      - "9292:80"
+    volumes:
+      - ./src:/var/www/html
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - uts_net
+
+  db:
+    image: mysql:8.0
+    container_name: uts_db
+    environment:
+      MYSQL_ROOT_PASSWORD: secretpassword
+      MYSQL_DATABASE: db_toko
+    ports:
+      - "3309:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-psecretpassword"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - uts_net
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: uts_pma
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      MYSQL_ROOT_PASSWORD: secretpassword
+    ports:
+      - "8585:80"
+    depends_on:
+      - db
+    networks:
+      - uts_net
+
+volumes:
+  db_data:
+
+networks:
+  uts_net:
+    driver: bridge
